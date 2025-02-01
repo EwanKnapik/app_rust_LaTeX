@@ -1,4 +1,4 @@
-use iced::widget::{button,svg, column, text, text_input, Column};
+use iced::widget::{text_editor, container, button,svg, column, Column};
 use latex::{DocumentClass, Document};
 use std::process::Command;
 use std::fs;
@@ -10,27 +10,27 @@ pub fn main() -> iced::Result {
 
 #[derive(Default)]
 struct State{
-    content: String,
+    content: text_editor::Content,
     counter: u8,
     file_path: String,
 }
 
 #[derive(Debug, Clone)]
 enum Message {
-    ContentChanged(String),
+    Edit(text_editor::Action),
     Clear,
     Render,
 }
 
 fn update(state: &mut State, message: Message) {
     match message {
-        Message::ContentChanged(content) =>{
-            state.content = content;
+        Message::Edit(action) =>{
+            state.content.perform(action);
         }
-        Message::Clear => {state.content="".to_string();}
+        Message::Clear => {state.content=text_editor::Content::new();}
         Message::Render => {
             let mut doc = Document::new(DocumentClass::Article);
-            doc.push(state.content.as_str()); 
+            doc.push(text_editor::Content::text(&state.content).as_str()); 
             let rendered = latex::print(&doc).unwrap();
             let _ = fs::remove_file(&state.file_path);
             let _ = fs::write("report.tex", rendered);
@@ -43,9 +43,9 @@ fn update(state: &mut State, message: Message) {
 }
 
 fn view(state: &State) -> Column<Message> {
+    let input = text_editor(&state.content).placeholder("type smth").on_action(Message::Edit);
     column![
-        text(state.content.clone()),
-        text_input("type smth...", &state.content).on_input(Message::ContentChanged),
+        container(input),
         button("clear").on_press(Message::Clear),
         button("render").on_press(Message::Render),
         svg(&state.file_path), // Use svg::Handle instead of a string path
