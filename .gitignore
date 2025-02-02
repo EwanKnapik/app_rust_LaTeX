@@ -1,1 +1,3 @@
 target/
+src/tmp*
+src/report*
