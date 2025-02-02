@@ -1,5 +1,5 @@
 use iced::widget::{row,text_editor, text, container, button,svg, column, Column};
-use latex::{DocumentClass, Document};
+use latex::{DocumentClass, Document, Equation};
 use std::process::Command;
 use std::fs;
 use iced::Background;
@@ -38,7 +38,6 @@ impl Default for State{
 }
 
 
-
 #[derive(Debug, Clone)]
 enum Message {
     Edit(text_editor::Action),
@@ -55,7 +54,7 @@ fn update(state: &mut State, message: Message) {
         }
         Message::Clear => {state.content=text_editor::Content::new();}
         Message::Render => {
-            let mut doc = Document::new(DocumentClass::Article);
+            let mut doc = Document::new(DocumentClass::Other(String::from("standalone")));
             doc.push(text_editor::Content::text(&state.content).as_str()); 
             let rendered = latex::print(&doc).unwrap();
             println!("{}",rendered);
@@ -63,7 +62,7 @@ fn update(state: &mut State, message: Message) {
             let _ = fs::write("report.tex", rendered);
             let _ = Command::new("latexmk").arg("report.tex").status();
             state.file_path=format!("tmp{}.svg",state.counter);
-            let _ = Command::new("dvisvgm").args([format!("-o {}",state.file_path),"report.dvi".to_string()]).status();
+            let _ = Command::new("dvisvgm").args(["--no-fonts".to_string(),format!("-o {}",state.file_path),"report.dvi".to_string()]).status();
             state.counter+=1;}
         Message::ToTextEditor =>{
             state.tab=Tabs::Texteditor;
@@ -89,13 +88,13 @@ fn view(state: &State) -> Column<Message> {
             button("render").on_press(Message::Render)],
         row![
             container(input).style(container::bordered_box).style(|_|{container::bordered_box(&Theme::Dark)}),
-            container(svg(&state.file_path).style(|_,_|{svg::Style{color:Some(Color::BLACK)}})).style(|_|{container::background(Background::Color(Color::WHITE))}).height(500),
+            container(svg(&state.file_path).style(|_,_|{svg::Style{color:Some(Color::BLACK)}}).content_fit(iced::ContentFit::Contain).height(300)).style(|_|{container::background(Background::Color(Color::WHITE))}),
         ]
     ]
         }
         Tabs::Graph => {
             column![
-            text("work in progress")
+            text("work in progress"),
             ]
         }
         }
